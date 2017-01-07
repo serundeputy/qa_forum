@@ -17,14 +17,6 @@ function qa_forum_menu() {
     'page arguments' => array('qa_forum_answer_form'),
     'access arguments' => array('access content'),
   );
-  $items['question/%/ajax/%'] = array(
-    'page callback' => 'qa_forum_ajax_vote',
-    'type' => MENU_CALLBACK,
-    'access arguments' => array('access content'),
-    //'delivery callback' => 'qa_forum_ajax_callback',
-    'delivery callback' => 'ajax_deliver',
-  );
-
   $items['get-votes/nojs/%'] = array(
     'title' => t('AJAX callback to get the votes for a given piece of content.'),
     'access arguments' => array('access content'),
@@ -69,23 +61,11 @@ function qa_forum_get_votes($delivery, $cid) {
  * Create the getVotes js function.
  */
 function qa_forum_ajax_callback($node) {
-  //return $node->title . 'geoff is the best.';
   return array(
     'command' => 'getVotes',
     'nid' => $node->nid,
     'title' => $node->title,
-  );
-}
-
- /**
-  * Ajax page callback.
-  */
-function qa_forum_ajax_vote() {
-  $node = _get_node();
-  return array(
-    'command' => 'getVotes',
-    'nid' => $node->nid,
-    'title' => $node->title,
+    'geoff' => 'much testing.',
   );
 }
 
@@ -96,18 +76,6 @@ function _get_title() {
   $node = _get_node();
   print $node->title;
   return $node->title;
-}
-
-/**
- *
- */
-function qa_forum_forms($form_id, $args) {
-  $forms = array();
-  $forms['voting_form'] = array(
-    'callback' => 'qa_forum_question_voting_form',
-  );
-
-  return $forms;
 }
 
 /**
