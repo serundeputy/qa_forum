@@ -41,7 +41,6 @@ function qa_forum_menu() {
  *   The id of the content, i.e. question->nid, answer->aid.
  */
 function qa_forum_get_votes($delivery, $cid) {
-
   if ($delivery != 'ajax') {
     backdrop_goto("question/$cid");
   }
