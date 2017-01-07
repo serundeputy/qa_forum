@@ -1,0 +1,239 @@
+<?php
+
+/**
+ * @file qa_helper.module
+ *   Find answers to the Question node being viewed.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function qa_forum_menu() {
+  $items = array();
+  $items['question/%'] = array(
+    'title' => t('Question'),
+    'description' => t("Get a question and the related answers."),
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('qa_forum_answer_form'),
+    'access arguments' => array('access content'),
+  );
+  $items['question/%/ajax/%'] = array(
+    'page callback' => 'qa_forum_ajax_vote',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('access content'),
+    //'delivery callback' => 'qa_forum_ajax_callback',
+    'delivery callback' => 'ajax_deliver',
+  );
+
+  $items['get-votes/nojs/%'] = array(
+    'title' => t('AJAX callback to get the votes for a given piece of content.'),
+    'access arguments' => array('access content'),
+    'page callback' => 'qa_forum_get_votes',
+    'page arguments' => array(1, 2),
+    'type' => MENU_CALLBACK,
+  );
+  $items['get-votes/ajax/%'] = array(
+    'delivery callback' => 'ajax_deliver',
+  ) + $items['get-votes/nojs/%'];
+
+  return $items;
+}
+
+/**
+ * Ajax callback for menu item 'get-votes/nojs/%'.
+ *
+ * @param string $delivery
+ *   url param 2; ajax to use ajax, nojs fallback.
+ *
+ * @param string $cid
+ *   The id of the content, i.e. question->nid, answer->aid.
+ */
+function qa_forum_get_votes($delivery, $cid) {
+  if ($delivery != 'ajax') {
+    backdrop_goto("question/$cid");
+  }
+  else {
+    $node = _get_node();
+    $commands = array(
+      ajax_command_html('#ajax-target', $node->title),
+      qa_forum_ajax_callback($node),
+    );
+    return array(
+      '#type' => 'ajax',
+      '#commands' => $commands,
+    );
+  }
+}
+
+/**
+ * Create the getVotes js function.
+ */
+function qa_forum_ajax_callback($node) {
+  //return $node->title . 'geoff is the best.';
+  return array(
+    'command' => 'getVotes',
+    'nid' => $node->nid,
+    'title' => $node->title,
+  );
+}
+
+ /**
+  * Ajax page callback.
+  */
+function qa_forum_ajax_vote() {
+  $node = _get_node();
+  return array(
+    'command' => 'getVotes',
+    'nid' => $node->nid,
+    'title' => $node->title,
+  );
+}
+
+/**
+ * Helper function to get page title.
+ */
+function _get_title() {
+  $node = _get_node();
+  print $node->title;
+  return $node->title;
+}
+
+/**
+ *
+ */
+function qa_forum_forms($form_id, $args) {
+  $forms = array();
+  $forms['voting_form'] = array(
+    'callback' => 'qa_forum_question_voting_form',
+  );
+
+  return $forms;
+}
+
+/**
+ * Callback for question/% path.
+ */
+function qa_forum_question_answer_content() {
+  $node = _get_node();
+  $my_ajax_link = '
+    <a class="btn" href="#" onclick="qa_forum_ajax_load()">
+      Ajax tst
+    </a>
+  ';
+  $new_link = "
+  <a class=\"btn use-ajax\" href=\"get-votes/nojs/$node->nid\">
+    Ajax tst
+  </a>
+  ";
+  $my_ajax_target = '
+    <div id="ajax-target">
+      Ajax goes here!!!
+    </div>
+  ';
+
+  // Question content.
+  backdrop_set_title($node->title);
+  $markup = '<div class="qa-forum-quetion-container">';
+    $markup .= '<div class="qa-forum-question-body">';
+      $markup .= $node->body[LANGUAGE_NONE][0]['value'];
+    $markup .= '</div>';
+    $markup .= '<div class="qa-forum-voting-form">';
+      $markup .= $new_link; //render($voting_form);
+      $markup .= $my_ajax_target;
+    $markup .= '</div>';
+  $markup .= '</div>';
+
+  // Get the current answers to the question.
+  $answers = db_select('qaf_answers', 'a')
+    ->fields('a')
+    ->condition('nid', $node->nid)
+    ->execute();
+
+  $answer_markup = '<div class="answers-wrapper">Answers: ';
+  foreach($answers as $key => $answer) {
+    $user = user_load($answer->uid);
+    if ($key % 2 == 0) {
+      $class = 'even';
+    }
+    else {
+      $class = 'odd';
+    }
+    $answer_markup .=
+      '<div class="an-answer ' . $class . '">' .
+        '<div class="answer-username">User: <strong>' . $user->name . '</strong></div>' .
+        '<div class="answer-body">' . $answer->body . '</div>' .
+      '</div>';
+  }
+  $answer_markup .= '</div>';
+  $markup .= $answer_markup;
+
+  return $markup;
+}
+
+/**
+ *  Define the provide an answer form.
+ */
+function qa_forum_answer_form() {
+  backdrop_add_library('system', 'backdrop.ajax');
+  backdrop_add_js(backdrop_get_path('module', 'qa_forum') . '/js/qa_forum.js');
+  $form = array();
+  $form['#attached']['css'] = array(
+  backdrop_get_path('module', 'qa_forum') . '/css/qa_forum.css',
+);
+  $form['content'] = array(
+    '#markup' => qa_forum_question_answer_content(),
+  );
+  $form['answer-wrapper'] = array(
+    '#prefix' => '<div id="answer-wrapper">',
+    '#suffix' => '</div>'
+  );
+  $form['answer-wrapper']['answer'] = array(
+    '#title' => t('Add your Answer'),
+    '#type' => 'text_format',
+    '#format' => NULL,
+    '#description' => t('Provide an answer to the question.'),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Add your answer',
+  );
+
+  return $form;
+}
+
+/**
+ *
+ */
+function qa_forum_answer_form_validate($form, &$form_state) {
+  // text_format saves data as an array('format', 'value') we are extracting
+  // just the 'value' part.
+  $form_state['my-answer'] = $form_state['values']['answer']['value'];
+}
+
+/**
+ * Submit handler for qa_forum_answer_form().
+ */
+function qa_forum_answer_form_submit(&$form, &$form_state) {
+  global $user;
+  $answer = db_insert('qaf_answers')
+    ->fields(
+      array(
+        'uid' => $user->uid,
+        'nid' => _get_node()->nid,
+        'body' => $form_state['my-answer'],
+        'created' => REQUEST_TIME,
+      )
+    )
+    ->execute();
+}
+
+/**
+ * Helper function to get the node requested.
+ */
+function _get_node() {
+  $url = current_path();
+  $nid = explode('/', $url);
+  $nid = $nid[1];
+  $node = node_load($nid);
+  return $node;
+}
