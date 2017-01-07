@@ -41,11 +41,13 @@ function qa_forum_menu() {
  *   The id of the content, i.e. question->nid, answer->aid.
  */
 function qa_forum_get_votes($delivery, $cid) {
+
   if ($delivery != 'ajax') {
     backdrop_goto("question/$cid");
   }
-  else {
-    $node = _get_node();
+  // Make sure trying to load a valid node.
+  else if($node = node_load($cid)) {
+    // Return AJAX commands.
     $commands = array(
       ajax_command_html('#ajax-target', $node->title),
       qa_forum_ajax_callback($node),
@@ -88,11 +90,13 @@ function qa_forum_question_answer_content() {
       Ajax tst
     </a>
   ';
-  $new_link = "
-  <a class=\"btn use-ajax\" href=\"get-votes/nojs/$node->nid\">
-    Ajax tst
-  </a>
-  ";
+  // Build a link to our AJAX path, make sure to include needed classes.
+  $new_link = l("Ajax-tst", "get-votes/nojs/" . $node->nid, array(
+      'attributes' => array(
+        'class' => array('use-ajax')
+        ),
+      )
+  );
   $my_ajax_target = '
     <div id="ajax-target">
       Ajax goes here!!!
@@ -100,6 +104,7 @@ function qa_forum_question_answer_content() {
   ';
 
   // Question content.
+  // @TODO: Move this all into a a template and call with the theme() function.
   backdrop_set_title($node->title);
   $markup = '<div class="qa-forum-quetion-container">';
     $markup .= '<div class="qa-forum-question-body">';
@@ -112,6 +117,7 @@ function qa_forum_question_answer_content() {
   $markup .= '</div>';
 
   // Get the current answers to the question.
+  // @TODO: move this into its own function
   $answers = db_select('qaf_answers', 'a')
     ->fields('a')
     ->condition('nid', $node->nid)
@@ -142,6 +148,7 @@ function qa_forum_question_answer_content() {
  *  Define the provide an answer form.
  */
 function qa_forum_answer_form() {
+
   backdrop_add_library('system', 'backdrop.ajax');
   backdrop_add_js(backdrop_get_path('module', 'qa_forum') . '/js/qa_forum.js');
   $form = array();
