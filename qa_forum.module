@@ -90,7 +90,7 @@ function qa_forum_question_answer_content() {
     </a>
   ';
   // Build a link to our AJAX path, make sure to include needed classes.
-  $new_link = l("Ajax-tst", "get-votes/nojs/" . $node->nid, array(
+  $new_link = l("Ajax tst", "get-votes/nojs/" . $node->nid, array(
       'attributes' => array(
         'class' => array('use-ajax')
         ),
@@ -147,7 +147,6 @@ function qa_forum_question_answer_content() {
  *  Define the provide an answer form.
  */
 function qa_forum_answer_form() {
-
   backdrop_add_library('system', 'backdrop.ajax');
   backdrop_add_js(backdrop_get_path('module', 'qa_forum') . '/js/qa_forum.js');
   $form = array();
