@@ -3,6 +3,11 @@ Question and Answer Forum (qa_forum)
 
 QA Forum provides a forum to ask and answer questions.
 
+Installation
+------------
+
+- Install this module using the official Backdrop CMS instructions at https://backdropcms.org/guide/modules.
+
 License
 -------
 
