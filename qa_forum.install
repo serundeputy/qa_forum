@@ -157,5 +157,61 @@ function qa_forum_schema() {
     ),
   );
 
+  $schema['qaf_events'] = array(
+    'description' => 'Contains event data and relationship to parent content.',
+    'fields' => array(
+      'event_id' => array(
+        'description' => 'The ID of the qa_comment.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The uid of the author of the comment.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'cid' => array(
+        'description' => 'The cid of the parent content.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'vote' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => NULL,
+        'description' => 'Value of the vote: -1, 0, 1.',
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the event was created.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default'=> 0,
+      ),
+      'last_modified' => array(
+        'description' => 'The Unix timestamp when the event was last modified.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default'=> 0,
+      ),
+    ),
+    'indexes' => array(
+      'qacid' => array('event_id'),
+      'uid' => array('uid'),
+    ),
+    'foreign keys' => array(
+      'node' => array(
+        'node' => 'node',
+        'columns' => array('nid' => 'cid'),
+      ),
+    ),
+  );
+
   return $schema;
 }

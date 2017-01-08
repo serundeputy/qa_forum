@@ -6,10 +6,10 @@
     // Place content in ajax-target div.
     var cid = response.cid;
     var uid = response.uid;
-    var type = ajax.element.classList[1];
-
+    var type = response.type;
+    var score = response.score;
     $('#ajax-target').html(
-      cid + '::' + uid + type
+      score
     );
   }
 })(jQuery, Drupal);
