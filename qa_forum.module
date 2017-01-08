@@ -17,16 +17,16 @@ function qa_forum_menu() {
     'page arguments' => array('qa_forum_answer_form'),
     'access arguments' => array('access content'),
   );
-  $items['get-votes/nojs/%'] = array(
+  $items['record-vote/nojs/%'] = array(
     'title' => t('AJAX callback to get the votes for a given piece of content.'),
     'access arguments' => array('access content'),
     'page callback' => 'qa_forum_get_votes',
     'page arguments' => array(1, 2),
     'type' => MENU_CALLBACK,
   );
-  $items['get-votes/ajax/%'] = array(
+  $items['record-vote/ajax/%'] = array(
     'delivery callback' => 'ajax_deliver',
-  ) + $items['get-votes/nojs/%'];
+  ) + $items['record-vote/nojs/%'];
 
   return $items;
 }
@@ -35,7 +35,7 @@ function qa_forum_menu() {
  * Ajax callback for menu item 'get-votes/nojs/%'.
  *
  * @param string $delivery
- *   url param 2; ajax to use ajax, nojs fallback.
+ *   URL param 2; ajax to use ajax, nojs fallback.
  *
  * @param string $cid
  *   The id of the content, i.e. question->nid, answer->aid.
@@ -45,11 +45,13 @@ function qa_forum_get_votes($delivery, $cid) {
     backdrop_goto("question/$cid");
   }
   // Make sure trying to load a valid node.
-  else if($node = node_load($cid)) {
+  elseif($node = node_load($cid)) {
+    global $user;
+    $user = user_load($user->uid);
     // Return AJAX commands.
     $commands = array(
-      ajax_command_html('#ajax-target', $node->title),
-      qa_forum_ajax_callback($node),
+      //ajax_command_html('#ajax-target', $node->title),
+      qa_forum_ajax_callback($node, $user),
     );
     return array(
       '#type' => 'ajax',
@@ -60,13 +62,15 @@ function qa_forum_get_votes($delivery, $cid) {
 
 /**
  * Create the getVotes js function.
+ *
+ * @param Node $node
+ *   Pass through the node object to use its properties and fields.
  */
-function qa_forum_ajax_callback($node) {
+function qa_forum_ajax_callback($node, $user) {
   return array(
     'command' => 'getVotes',
-    'nid' => $node->nid,
-    'title' => $node->title,
-    'geoff' => 'much testing.',
+    'cid' => $node->nid,
+    'uid' => $user->uid,
   );
 }
 
@@ -84,21 +88,23 @@ function _get_title() {
  */
 function qa_forum_question_answer_content() {
   $node = _get_node();
-  $my_ajax_link = '
-    <a class="btn" href="#" onclick="qa_forum_ajax_load()">
-      Ajax tst
-    </a>
-  ';
-  // Build a link to our AJAX path, make sure to include needed classes.
-  $new_link = l("Ajax tst", "get-votes/nojs/" . $node->nid, array(
+
+  // Build links to our AJAX path, make sure to include needed classes.
+  $up_link = l("Up vote", "record-vote/nojs/" . $node->nid, array(
       'attributes' => array(
-        'class' => array('use-ajax')
+        'class' => array('use-ajax', 'up-vote')
+        ),
+      )
+  );
+  $down_link = l("Down vote", "record-vote/nojs/" . $node->nid, array(
+      'attributes' => array(
+        'class' => array('use-ajax', 'down-vote')
         ),
       )
   );
   $my_ajax_target = '
     <div id="ajax-target">
-      Ajax goes here!!!
+      << NUM VOTES >>
     </div>
   ';
 
@@ -110,8 +116,9 @@ function qa_forum_question_answer_content() {
       $markup .= $node->body[LANGUAGE_NONE][0]['value'];
     $markup .= '</div>';
     $markup .= '<div class="qa-forum-voting-form">';
-      $markup .= $new_link; //render($voting_form);
+      $markup .= $up_link;
       $markup .= $my_ajax_target;
+      $markup .= $down_link;
     $markup .= '</div>';
   $markup .= '</div>';
 
